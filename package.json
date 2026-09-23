@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "cd src && node index.js",
-    "test:coverage": "jest --coverage",
-    "test": "jest",
+    "test": "jest --coverage",
     "lint": "eslint ."
   },
   "license": "MIT",
