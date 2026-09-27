@@ -1,0 +1,16 @@
+# Throwaway MySQL for local testing. Data lives in tmpfs, so every `up` starts with an empty database.
+services:
+  mysql-test:
+    image: mysql:8.0.29
+    environment:
+      MYSQL_ROOT_PASSWORD: tempdbpassword
+    ports:
+      - '3307:3306'
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      # Ping over TCP so we don't report healthy while MySQL's temporary init server is running.
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '-ptempdbpassword']
+      interval: 2s
+      timeout: 5s
+      retries: 30

@@ -315,6 +315,7 @@ class DB {
   async _getConnection(setUse = true) {
     const connection = await mysql.createConnection({
       host: config.db.connection.host,
+      port: config.db.connection.port,
       user: config.db.connection.user,
       password: config.db.connection.password,
       connectTimeout: config.db.connection.connectTimeout,
