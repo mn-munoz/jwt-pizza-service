@@ -1,13 +1,13 @@
 const request = require('supertest');
 const app = require('../service');
-const { Role, DB } = require('../database/database.js');
+const { randomName, loginAsNewAdmin } = require('./testUtils.js');
 
 const testUser = { name: 'pizza diner', email: 'reg@test.com', password: 'a' };
 let testUserAuthToken;
 const menuItem = { title: 'Crusty', description: 'A dry mouthed favorite', image: 'pizza4.png', price: 0.0028 };
 
 beforeAll(async () => {
-  testUser.email = Math.random().toString(36).substring(2, 12) + '@test.com';
+  testUser.email = randomName() + '@test.com';
   const registerRes = await request(app).post('/api/auth').send(testUser);
   testUserAuthToken = registerRes.body.token;
 
@@ -33,10 +33,3 @@ test('get menu as registered user', async () => {
   expect(menuRes.status).toBe(200);
   expect(menuRes.body).toEqual(expect.arrayContaining([expect.objectContaining(menuItem)]));
 });
-
-async function loginAsNewAdmin() {
-  const admin = { name: 'pizza admin', email: Math.random().toString(36).substring(2, 12) + '@admin.com', password: 'toomanysecrets', roles: [{ role: Role.Admin }] };
-  await DB.addUser(admin);
-  const loginRes = await request(app).put('/api/auth').send({ email: admin.email, password: admin.password });
-  return loginRes.body.token;
-}
