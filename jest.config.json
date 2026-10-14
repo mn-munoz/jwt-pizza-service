@@ -1,7 +1,11 @@
 {
   "collectCoverage": true,
-  "setupFiles": ["<rootDir>/src/tests/setupEnv.js"],
-  "coverageReporters": ["json-summary", "text"],
+  "globalSetup": "<rootDir>/src/tests/globalSetup.js",
+  "globalTeardown": "<rootDir>/src/tests/globalTeardown.js",
+  "coverageReporters": [
+    "json-summary",
+    "text"
+  ],
   "coverageThreshold": {
     "global": {
       "lines": 80
