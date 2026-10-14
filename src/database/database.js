@@ -96,7 +96,15 @@ class DB {
       if (fields.length > 0) {
         await this.query(connection, `UPDATE user SET ${fields.join(', ')} WHERE id=?`, [...params, userId]);
       }
+    } finally {
+      connection.end();
+    }
+    return this.getUserById(userId);
+  }
 
+  async getUserById(userId) {
+    const connection = await this.getConnection();
+    try {
       const userResult = await this.query(connection, `SELECT id, name, email FROM user WHERE id=?`, [userId]);
       const user = userResult[0];
       if (!user) {

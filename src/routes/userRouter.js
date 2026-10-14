@@ -20,6 +20,19 @@ userRouter.docs = [
     },
   },
   {
+    method: "GET",
+    path: "/api/user/:userId",
+    requiresAuth: true,
+    description: "Get a user by id. Only the user themselves or an admin can do this.",
+    example: `curl -X GET localhost:3000/api/user/1 -H 'Authorization: Bearer tttttt'`,
+    response: {
+      id: 1,
+      name: "常用名字",
+      email: "a@jwt.com",
+      roles: [{ role: "admin" }],
+    },
+  },
+  {
     method: "PUT",
     path: "/api/user/:userId",
     requiresAuth: true,
@@ -68,6 +81,21 @@ userRouter.get(
   authRouter.authenticateToken,
   asyncHandler(async (req, res) => {
     res.json(req.user);
+  }),
+);
+
+// getUserById
+userRouter.get(
+  "/:userId",
+  authRouter.authenticateToken,
+  asyncHandler(async (req, res) => {
+    const userId = Number(req.params.userId);
+    const user = req.user;
+    if (user.id !== userId && !user.isRole(Role.Admin)) {
+      return res.status(403).json({ message: "unauthorized" });
+    }
+
+    res.json(await DB.getUserById(userId));
   }),
 );
 

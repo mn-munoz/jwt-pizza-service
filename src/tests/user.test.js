@@ -37,6 +37,48 @@ test('list users', async () => {
 });
 
 
+test('get user unauthorized', async () => {
+  const [diner] = await registerDiner();
+  const getRes = await request(app).get(`/api/user/${diner.id}`);
+  expect(getRes.status).toBe(401);
+});
+
+test('get self', async () => {
+  const [diner, dinerToken] = await registerDiner();
+  const getRes = await request(app)
+    .get(`/api/user/${diner.id}`)
+    .set('Authorization', 'Bearer ' + dinerToken);
+  expect(getRes.status).toBe(200);
+  expect(getRes.body).toEqual({ id: diner.id, name: diner.name, email: diner.email, roles: [{ role: 'diner' }] });
+});
+
+test('get other user forbidden for non-admin', async () => {
+  const [, dinerToken] = await registerDiner();
+  const [otherDiner] = await registerDiner();
+  const getRes = await request(app)
+    .get(`/api/user/${otherDiner.id}`)
+    .set('Authorization', 'Bearer ' + dinerToken);
+  expect(getRes.status).toBe(403);
+});
+
+test('admin gets other user', async () => {
+  const adminToken = await loginAsNewAdmin();
+  const [diner] = await registerDiner();
+  const getRes = await request(app)
+    .get(`/api/user/${diner.id}`)
+    .set('Authorization', 'Bearer ' + adminToken);
+  expect(getRes.status).toBe(200);
+  expect(getRes.body).toMatchObject({ id: diner.id, name: diner.name, email: diner.email });
+});
+
+test('get nonexistent user', async () => {
+  const adminToken = await loginAsNewAdmin();
+  const getRes = await request(app)
+    .get('/api/user/999999999')
+    .set('Authorization', 'Bearer ' + adminToken);
+  expect(getRes.status).toBe(404);
+});
+
 test('update user unauthorized', async () => {
   const [diner] = await registerDiner();
   const updateRes = await request(app).put(`/api/user/${diner.id}`).send({ name: 'new name' });
