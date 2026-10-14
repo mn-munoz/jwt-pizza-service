@@ -1,5 +1,6 @@
 {
   "collectCoverage": true,
+  "setupFiles": ["<rootDir>/src/tests/setupEnv.js"],
   "coverageReporters": ["json-summary", "text"],
   "coverageThreshold": {
     "global": {

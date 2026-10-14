@@ -78,22 +78,83 @@ class DB {
   async updateUser(userId, name, email, password) {
     const connection = await this.getConnection();
     try {
+      const fields = [];
       const params = [];
       if (password) {
         const hashedPassword = await bcrypt.hash(password, 10);
-        params.push(`password='${hashedPassword}'`);
+        fields.push('password=?');
+        params.push(hashedPassword);
       }
       if (email) {
-        params.push(`email='${email}'`);
+        fields.push('email=?');
+        params.push(email);
       }
       if (name) {
-        params.push(`name='${name}'`);
+        fields.push('name=?');
+        params.push(name);
       }
-      if (params.length > 0) {
-        const query = `UPDATE user SET ${params.join(', ')} WHERE id=${userId}`;
-        await this.query(connection, query);
+      if (fields.length > 0) {
+        await this.query(connection, `UPDATE user SET ${fields.join(', ')} WHERE id=?`, [...params, userId]);
       }
-      return this.getUser(email, password);
+
+      const userResult = await this.query(connection, `SELECT id, name, email FROM user WHERE id=?`, [userId]);
+      const user = userResult[0];
+      if (!user) {
+        throw new StatusCodeError('unknown user', 404);
+      }
+      const roleResult = await this.query(connection, `SELECT * FROM userRole WHERE userId=?`, [userId]);
+      const roles = roleResult.map((r) => {
+        return { objectId: r.objectId || undefined, role: r.role };
+      });
+
+      return { ...user, roles: roles };
+    } finally {
+      connection.end();
+    }
+  }
+
+  async listUsers(page = 0, limit = 10, nameFilter = '*') {
+    const connection = await this.getConnection();
+
+    page = Math.max(parseInt(page) || 0, 0);
+    limit = Math.max(parseInt(limit) || 10, 1);
+    const offset = page * limit;
+    nameFilter = nameFilter.replace(/\*/g, '%');
+
+    try {
+      let users = await this.query(connection, `SELECT id, name, email FROM user WHERE name LIKE ? ORDER BY id LIMIT ${limit + 1} OFFSET ${offset}`, [nameFilter]);
+
+      const more = users.length > limit;
+      if (more) {
+        users = users.slice(0, limit);
+      }
+
+      if (users.length > 0) {
+        const roleResult = await this.query(connection, `SELECT userId, role FROM userRole WHERE userId IN (${users.map(() => '?').join(',')})`, users.map((u) => u.id));
+        for (const user of users) {
+          user.roles = roleResult.filter((r) => r.userId === user.id).map((r) => ({ role: r.role }));
+        }
+      }
+
+      return [users, more];
+    } finally {
+      connection.end();
+    }
+  }
+
+  async deleteUser(userId) {
+    const connection = await this.getConnection();
+    try {
+      await connection.beginTransaction();
+      try {
+        await this.query(connection, `DELETE FROM auth WHERE userId=?`, [userId]);
+        await this.query(connection, `DELETE FROM userRole WHERE userId=?`, [userId]);
+        await this.query(connection, `DELETE FROM user WHERE id=?`, [userId]);
+        await connection.commit();
+      } catch {
+        await connection.rollback();
+        throw new StatusCodeError('unable to delete user', 500);
+      }
     } finally {
       connection.end();
     }
