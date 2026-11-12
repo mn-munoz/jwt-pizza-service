@@ -6,4 +6,4 @@ app.listen(port, () => {
   console.log(`Server started on port ${port}`);
 });
 
-metrics.sendMetricsPeriodically(60000);
+metrics.sendMetricsPeriodically(10000);
